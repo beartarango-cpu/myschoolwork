@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Private Gateway</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 100px; background: #0f0f11; color: #fff; }
+        .box { max-width: 450px; margin: 0 auto; background: #1c1c24; padding: 30px; border-radius: 8px; }
+        input { width: 80%; padding: 12px; margin-bottom: 15px; border-radius: 4px; border: 1px solid #333; background: #2c2c38; color: #fff; }
+        button { padding: 12px 25px; background: #5865F2; border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #4752c4; }
+    </style>
+</head>
+<body>
+
+    <div class="box">
+        <h2>Private Web Proxy</h2>
+        <p>This proxy runs on your own private cloud node.</p>
+        <input type="text" id="siteUrl" placeholder="https://wikipedia.org">
+        <button onclick="browse()">Launch Safe Browsing</button>
+    </div>
+
+    <script>
+        function browse() {
+            let target = document.getElementById('siteUrl').value.trim();
+            if (!target) return alert('Enter a URL first');
+            
+            if (!/^https?:\/\//i.test(target)) {
+                target = 'https://' + target;
+            }
+            
+            // Routes the request straight into your backend server's custom router
+            window.location.href = window.location.origin + "/service?url=" + encodeURIComponent(target);
+        }
+    </script>
+
+</body>
+</html>
