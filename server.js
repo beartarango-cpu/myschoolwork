@@ -4,18 +4,17 @@ const app = express();
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 1. Homepage route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Helper function to rewrite asset and link URLs so they point through your proxy
+// Helper function to rewrite asset and link paths so they route correctly back through your proxy domain
 function rewriteUrls(html, targetBaseUrl) {
     try {
         const url = new URL(targetBaseUrl);
         const origin = url.origin;
 
-        // Remove meta tag Content-Security-Policies that browsers enforce locally
+        // Remove meta-tag security policies embedded in the HTML body
         let modifiedHtml = html.replace(/<meta[^>]*content-security-policy[^>]*>/gi, '');
 
         // Rewrite absolute paths starting with "/" (e.g., /style.css -> /proxy?url=://targetsite.com)
@@ -37,22 +36,25 @@ function rewriteUrls(html, targetBaseUrl) {
     }
 }
 
-// 2. The core Proxy processor
 app.get('/proxy', async (req, res) => {
     const targetUrl = req.query.url;
     if (!targetUrl) return res.send("No URL provided");
 
     try {
+        // Save the last browsed domain to session memory so catch-alls know where to point fallbacks
+        app.locals.lastProxiedOrigin = new URL(targetUrl).origin;
+
         const response = await fetch(targetUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+            headers: { 
+                // Spoofs an older mobile browser layout to force Google to give us simple HTML without complex script blocks
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 10_3_3 like Mac OS X) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.0 Mobile/14G60 Safari/602.1'
+            }
         });
         let html = await response.text();
 
-        // Save the last browsed site to session memory so catch-alls know where to redirect
-        app.locals.lastProxiedOrigin = new URL(targetUrl).origin;
-
         const cleanHtml = rewriteUrls(html, targetUrl);
 
+        // Strip incoming iframe tracking restrictions out of the header
         res.removeHeader('X-Frame-Options');
         res.removeHeader('Content-Security-Policy');
         res.setHeader('X-Frame-Options', 'ALLOWALL'); 
@@ -63,14 +65,10 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
-// 3. CATCH-ALL ROUTE: Fixes the "Cannot GET /search" error by forcing broken sub-routes back to Google
+// CATCH-ALL ROUTER: Solves the "Cannot GET /search" error by capturing raw sub-paths
 app.get('/:route', (req, res) => {
     const origin = app.locals.lastProxiedOrigin || 'https://google.com';
-    
-    // Reconstruct the full original URL path intended for Google
     const fullOriginalUrl = origin + req.originalUrl;
-    
-    // Reroute it cleanly back into your proxy loop
     res.redirect(`/proxy?url=${encodeURIComponent(fullOriginalUrl)}`);
 });
 
