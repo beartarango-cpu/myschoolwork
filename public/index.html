@@ -16,21 +16,31 @@
     <div class="box">
         <h2>Private Web Proxy</h2>
         <p>This proxy runs on your own private cloud node.</p>
-        <input type="text" id="siteUrl" placeholder="https://wikipedia.org">
+        <!-- Updated placeholder to show it supports normal search phrases -->
+        <input type="text" id="siteUrl" placeholder="Enter a URL or search query...">
         <button onclick="browse()">Launch Safe Browsing</button>
     </div>
 
     <script>
         function browse() {
             let target = document.getElementById('siteUrl').value.trim();
-            if (!target) return alert('Enter a URL first');
+            if (!target) return alert('Enter a URL or search query first');
             
-            // Fix formatting if protocol is missing
-            if (!/^https?:\/\//i.test(target)) {
-                target = 'https://' + target;
+            // 1. DETECTION ENGINE: Check if the text looks like a URL or a plain search phrase
+            const isUrlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
+            const hasSpaces = target.includes(' ');
+
+            if (!isUrlPattern.test(target) || hasSpaces) {
+                // If it contains spaces or lacks a dot domain extension, redirect to Google Search
+                target = 'https://google.com' + encodeURIComponent(target);
+            } else {
+                // If it is a domain, format the base prefix correctly
+                if (!/^https?:\/\//i.test(target)) {
+                    target = 'https://' + target;
+                }
             }
             
-            // YOUTUBE BYPASS FILTER: Intercept and convert standard video links to the embed format
+            // 2. YOUTUBE BYPASS FILTER: Convert regular layout paths to native embed elements
             if (target.includes('://youtube.com')) {
                 const urlParams = new URL(target).searchParams;
                 const videoId = urlParams.get('v');
@@ -39,13 +49,13 @@
                 }
             } else if (target.includes('youtu.be/')) {
                 const urlParts = target.split('youtu.be/');
-                const videoId = urlParts[1].split(/[?#]/)[0];
+                const videoId = urlParts[1] ? urlParts[1].split(/[?#]/)[0] : null;
                 if (videoId) {
                     target = 'https://youtube-nocookie.com' + videoId;
                 }
             }
             
-            // Fixed endpoint to use "/proxy" instead of "/service" to match server.js configuration
+            // Route the final constructed pathway directly through your server's proxy setup
             window.location.href = window.location.origin + "/proxy?url=" + encodeURIComponent(target);
         }
     </script>
