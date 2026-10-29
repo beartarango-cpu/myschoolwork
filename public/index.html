@@ -1,35 +1,62 @@
-function browse() {
-    let target = document.getElementById('siteUrl').value.trim();
-    if (!target) return alert('Enter a URL or search query first');
-    
-    // Check if the input is a plain search query instead of a URL
-    const isUrlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
-    const hasSpaces = target.includes(' ');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Private Gateway</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 100px; background: #0f0f11; color: #fff; }
+        .box { max-width: 450px; margin: 0 auto; background: #1c1c24; padding: 30px; border-radius: 8px; }
+        input { width: 80%; padding: 12px; margin-bottom: 15px; border-radius: 4px; border: 1px solid #333; background: #2c2c38; color: #fff; }
+        button { padding: 12px 25px; background: #5865F2; border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #4752c4; }
+    </style>
+</head>
+<body>
 
-    if (!isUrlPattern.test(target) || hasSpaces) {
-        // COOKIE BYPASS: Route search phrases through DuckDuckGo's lightweight engine
-        target = 'https://duckduckgo.com' + encodeURIComponent(target);
-    } else {
-        if (!/^https?:\/\//i.test(target)) {
-            target = 'https://' + target;
+    <div class="box">
+        <h2>Private Web Proxy</h2>
+        <p>This proxy runs on your own private cloud node.</p>
+        <input type="text" id="siteUrl" placeholder="Enter a URL or search query...">
+        <button onclick="browse()">Launch Safe Browsing</button>
+    </div>
+
+    <script>
+        function browse() {
+            let target = document.getElementById('siteUrl').value.trim();
+            if (!target) return alert('Enter a URL or search query first');
+            
+            // 1. DETECTION ENGINE: Check if input is a raw search query or a valid URL domain
+            const isUrlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
+            const hasSpaces = target.includes(' ');
+
+            if (!isUrlPattern.test(target) || hasSpaces) {
+                // Route phrases directly to Google's raw mobile search query pipeline
+                target = 'https://google.com' + encodeURIComponent(target);
+            } else {
+                if (!/^https?:\/\//i.test(target)) {
+                    target = 'https://' + target;
+                }
+            }
+            
+            // 2. YOUTUBE BYPASS FILTER: Convert regular layout paths to browser-friendly embed elements
+            if (target.includes('://youtube.com')) {
+                const urlParams = new URL(target).searchParams;
+                const videoId = urlParams.get('v');
+                if (videoId) {
+                    target = 'https://youtube-nocookie.com' + videoId;
+                }
+            } else if (target.includes('youtu.be/')) {
+                const urlParts = target.split('youtu.be/');
+                const videoId = urlParts[1] ? urlParts[1].split(/[?#]/)[0] : null;
+                if (videoId) {
+                    target = 'https://youtube-nocookie.com' + videoId;
+                }
+            }
+            
+            // Redirect cleanly through your server's proxy route setup
+            window.location.href = window.location.origin + "/proxy?url=" + encodeURIComponent(target);
         }
-    }
-    
-    // YouTube Embed optimization filters
-    if (target.includes('youtube.com/watch?v=')) {
-        const urlParams = new URL(target).searchParams;
-        const videoId = urlParams.get('v');
-        if (videoId) {
-            target = 'https://youtube-nocookie.com' + videoId;
-        }
-    } else if (target.includes('youtu.be/')) {
-        const urlParts = target.split('youtu.be/');
-        const videoId = urlParts ? urlParts[1].split(/[?#]/)[0] : null;
-        if (videoId) {
-            target = 'https://youtube-nocookie.com' + videoId;
-        }
-    }
-    
-    // Send request to your proxy endpoint
-    window.location.href = window.location.origin + "/proxy?url=" + encodeURIComponent(target);
-}
+    </script>
+
+</body>
+</html>
