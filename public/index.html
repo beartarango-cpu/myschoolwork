@@ -25,12 +25,28 @@
             let target = document.getElementById('siteUrl').value.trim();
             if (!target) return alert('Enter a URL first');
             
+            // Fix formatting if protocol is missing
             if (!/^https?:\/\//i.test(target)) {
                 target = 'https://' + target;
             }
             
-            // Routes the request straight into your backend server's custom router
-            window.location.href = window.location.origin + "/service?url=" + encodeURIComponent(target);
+            // YOUTUBE BYPASS FILTER: Intercept and convert standard video links to the embed format
+            if (target.includes('://youtube.com')) {
+                const urlParams = new URL(target).searchParams;
+                const videoId = urlParams.get('v');
+                if (videoId) {
+                    target = 'https://youtube-nocookie.com' + videoId;
+                }
+            } else if (target.includes('youtu.be/')) {
+                const urlParts = target.split('youtu.be/');
+                const videoId = urlParts[1].split(/[?#]/)[0];
+                if (videoId) {
+                    target = 'https://youtube-nocookie.com' + videoId;
+                }
+            }
+            
+            // Fixed endpoint to use "/proxy" instead of "/service" to match server.js configuration
+            window.location.href = window.location.origin + "/proxy?url=" + encodeURIComponent(target);
         }
     </script>
 
