@@ -30,3 +30,29 @@ app.use('/service', (req, res, next) => {
 app.listen(PORT, () => {
     console.log(`Your private web proxy is live on port ${PORT}`);
 });
+
+// Example route handling your proxy requests
+app.get('/proxy', async (req, res) => {
+    const targetUrl = req.query.url;
+    if (!targetUrl) return res.send("No URL provided");
+
+    try {
+        // Fetch the external website server-side
+        const response = await fetch(targetUrl);
+        let html = await response.text();
+
+        // 1. STRIP THE SECURITY BLOCKS: Delete frame restrictions from headers
+        res.removeHeader('X-Frame-Options');
+        res.removeHeader('Content-Security-Policy');
+        
+        // 2. FORCE BROWSER TO ALLOW IT: Tell the browser it is safe to embed
+        res.setHeader('X-Frame-Options', 'ALLOWALL'); 
+        
+        // Send the modified HTML content to your iframe
+        res.send(html);
+
+    } catch (error) {
+        res.status(500).send("Proxy failed to fetch the site.");
+    }
+});
+
