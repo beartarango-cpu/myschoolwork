@@ -1,7 +1,7 @@
 {
   "name": "private-proxy",
   "version": "1.0.0",
-  "description": "Private proxy backend node",
+  "description": "Private proxy backend node running hammerhead",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,6 +9,10 @@
   "dependencies": {
     "cookie-parser": "^1.4.6",
     "express": "^4.19.2",
-    "http-proxy-middleware": "^3.0.0"
+    "http-proxy-middleware": "^3.0.0",
+    "testcafe-hammerhead": "31.7.1"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
