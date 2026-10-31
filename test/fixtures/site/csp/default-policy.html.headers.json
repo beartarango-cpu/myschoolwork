@@ -1,3 +1,0 @@
-{
-    "content-security-policy": "script-src 'nonce-rhtest'; trusted-types app default; require-trusted-types-for 'script'"
-}

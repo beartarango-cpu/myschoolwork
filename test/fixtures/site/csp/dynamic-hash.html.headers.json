@@ -1,3 +1,0 @@
-{
-    "content-security-policy": "script-src 'nonce-rhtest' 'sha256-F1NRNV8Hp5v0w8oGqD72NmG8L4NbgzPOhTpkX967foY='"
-}
