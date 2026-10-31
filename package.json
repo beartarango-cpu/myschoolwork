@@ -4,15 +4,9 @@
   "description": "User friendly web proxy powered by testcafe-hammerhead",
   "main": "src/index.js",
   "scripts": {
-    "preinstall": "npm install --package-lock-only --ignore-scripts && npx npm-force-resolutions",
     "start": "node src/server.js",
     "build": "node src/build.js",
-    "bstart": "npm run build && npm run start",
-    "test": "node src/build.js && node --test --test-concurrency=1 \"test/**/*.test.js\"",
-    "lint": "eslint -c .eslintrc.json --ext .js src",
-    "format": "prettier --write 'src/**/*.js'",
-    "clientes5": "es-check es5 src/client/*.js public/**/*.js",
-    "check": "npm run format && npm run lint && npm run build"
+    "vercel-build": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -43,12 +37,8 @@
     "babel-eslint": "^10.1.0",
     "dotenv-flow": "^3.2.0",
     "eslint": "^7.32.0",
-    "npm-force-resolutions": "0.0.10",
     "playwright": "^1.64.0",
     "prettier": "^2.3.2"
-  },
-  "resolutions": {
-    "tmp": "0.2.1"
   },
   "files": [
     "src/*",
