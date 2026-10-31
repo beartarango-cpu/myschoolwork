@@ -23,20 +23,39 @@
     <script>
         function browse() {
             let target = document.getElementById('siteUrl').value.trim();
-            if (!target) return alert('Enter a query first');
+            if (!target) return alert('Enter a URL or search query first');
             
+            // 1. DETECTION ENGINE: Check if input is a raw search query or a valid URL domain
             const isUrlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
             const hasSpaces = target.includes(' ');
 
             if (!isUrlPattern.test(target) || hasSpaces) {
-                // Instantly target our server's internal /search route handler
+                // Route plain text queries into your server's internal search handler route
                 window.location.href = window.location.origin + "/search?q=" + encodeURIComponent(target);
+                return;
             } else {
                 if (!/^https?:\/\//i.test(target)) {
                     target = 'https://' + target;
                 }
-                window.location.href = window.location.origin + "/proxy?url=" + encodeURIComponent(target);
             }
+            
+            // 2. YOUTUBE BYPASS FILTER: Convert regular video links to friendly embed elements
+            if (target.includes('://youtube.com')) {
+                const urlParams = new URL(target).searchParams;
+                const videoId = urlParams.get('v');
+                if (videoId) {
+                    target = 'https://youtube-nocookie.com' + videoId;
+                }
+            } else if (target.includes('youtu.be/')) {
+                const urlParts = target.split('youtu.be/');
+                const videoId = urlParts[1] ? urlParts[1].split(/[?#]/)[0] : null;
+                if (videoId) {
+                    target = 'https://youtube-nocookie.com' + videoId;
+                }
+            }
+            
+            // Redirect cleanly through your server's proxy route setup
+            window.location.href = window.location.origin + "/proxy?url=" + encodeURIComponent(target);
         }
     </script>
 
