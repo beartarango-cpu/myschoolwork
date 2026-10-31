@@ -1,4 +1,5 @@
-"version": 2,
+{
+  "version": 2,
   "builds": [
     {
       "src": "server.js",
@@ -11,7 +12,12 @@
       "dest": "server.js"
     },
     {
+      "src": "/search(.*)",
+      "dest": "server.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "server.js"
     }
   ]
+}
