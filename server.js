@@ -8,39 +8,66 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// A clean, ultra-stable proxy engine that handles all search requests as raw streams
+// Helper function to rewrite asset and link paths so they route correctly back through your proxy domain
+function rewriteUrls(html, targetBaseUrl) {
+    try {
+        const url = new URL(targetBaseUrl);
+        const origin = url.origin;
+
+        // Remove meta-tag security policies embedded in the HTML body
+        let modifiedHtml = html.replace(/<meta[^>]*content-security-policy[^>]*>/gi, '');
+
+        // Rewrite absolute paths starting with "/" (e.g., /style.css -> /proxy?url=://targetsite.com)
+        modifiedHtml = modifiedHtml.replace(/(href|src)=["']\/([^"']*)["']/g, (match, attribute, path) => {
+            const fullAssetUrl = `${origin}/${path}`;
+            return `${attribute}="/proxy?url=${encodeURIComponent(fullAssetUrl)}"`;
+        });
+
+        // Rewrite relative paths (e.g., images/logo.png -> /proxy?url=://targetsite.com)
+        modifiedHtml = modifiedHtml.replace(/(href|src)=["'](?!(http|https|\/))([^"']*)["']/g, (match, attribute, path) => {
+            const baseUrlWithSlash = targetBaseUrl.endsWith('/') ? targetBaseUrl : targetBaseUrl + '/';
+            const fullAssetUrl = `${baseUrlWithSlash}${path}`;
+            return `${attribute}="/proxy?url=${encodeURIComponent(fullAssetUrl)}"`;
+        });
+
+        return modifiedHtml;
+    } catch (e) {
+        return html;
+    }
+}
+
 app.get('/proxy', async (req, res) => {
-    const targetUrl = req.query.url;
+    let targetUrl = req.query.url;
     if (!targetUrl) return res.send("No URL provided");
 
+    // CLOUDFLARE BYPASS INJECTION: Detect if a target page might be heavily guarded, 
+    // and funnel it through Google's spider web cache if it isn't an embed asset already.
+    const isMainHtmlPage = !targetUrl.match(/\.(css|js|png|jpg|jpeg|gif|svg|woff|woff2|ico)$/i);
+    const isAlreadyCached = targetUrl.includes('://googleusercontent.com');
+
+    if (isMainHtmlPage && !isAlreadyCached && !targetUrl.includes('youtube') && !targetUrl.includes('google.com')) {
+        targetUrl = 'https://://googleusercontent.com/search?q=cache:' + encodeURIComponent(targetUrl);
+    }
+
     try {
-        // Fetch the site using a clean, universal mobile signature
         const response = await fetch(targetUrl, {
             headers: { 
+                // Matches standard mobile device browser profiles
                 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-A205U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Mobile Safari/537.36'
             }
         });
-        
         let html = await response.text();
 
-        // Fix absolute links inside the text stream so they stay inside our proxy loop
-        let cleanHtml = html.replace(/(href|src)=["']\/([^"']*)["']/g, (match, attr, path) => {
-            try {
-                const origin = new URL(targetUrl).origin;
-                return `${attr}="/proxy?url=${encodeURIComponent(origin + '/' + path)}"`;
-            } catch(e) {
-                return match;
-            }
-        });
+        const cleanHtml = rewriteUrls(html, targetUrl);
 
-        // Strip the security filters that cause the browser to show a blank screen
+        // Strip incoming iframe tracking restrictions out of the header response thread
         res.removeHeader('X-Frame-Options');
         res.removeHeader('Content-Security-Policy');
         res.setHeader('X-Frame-Options', 'ALLOWALL'); 
         
         res.send(cleanHtml);
     } catch (error) {
-        res.status(500).send("Proxy failed to process the request safely.");
+        res.status(500).send("Proxy failed to fetch the site securely.");
     }
 });
 
